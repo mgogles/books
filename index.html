@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>My Book List</title>
+    <style>
+      /* Add some basic styles */
+      body {
+        font-family: Arial, sans-serif;
+      }
+      
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      
+      th, td {
+        padding: 8px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      
+      th {
+        background-color: #f2f2f2;
+      }
+      
+      input[type=text] {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        box-sizing: border-box;
+        border: 2px solid #ccc;
+        border-radius: 4px;
+      }
+      
+      input[type=submit] {
+        background-color: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      
+      input[type=submit]:hover {
+        background-color: #45a049;
+      }
+      
+      /* Add styles for autocomplete dropdown */
+      .autocomplete {
+        position: relative;
+      }
+      
+      .autocomplete-items {
+        position: absolute;
+        z-index: 1;
+        top: 100%;
+        left: 0;
+        right: 0;
+      }
+      
+      .autocomplete-items div {
+        padding: 10px;
+        cursor: pointer;
+        background-color: #fff;
+        border: 1px solid #d4d4d4;
+      }
+      
+      .autocomplete-items div:hover {
+        background-color: #e9e9e9;
+      }
+      
+      .autocomplete-active {
+        background-color: DodgerBlue !important;
+        color: #ffffff;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>My Book List</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Book Title</th>
+          <th>Author</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- This is where we'll add new rows dynamically with JavaScript -->
+      </tbody>
+    </table>
+    <br>
+    <form id="add-book-form">
+      <label for="title">Book Title:</label><br>
+      <div class="autocomplete">
+        <input type="text" id="title" name="title" autocomplete="off">
+        <div class="autocomplete-items"></div>
+      </div>
+      <label for="author">Author:</label><br>
+      <input type="text" id="author" name="author"><br><br>
+      <input type="submit" value="Add Book">
+    </form>
+
+    
+    <!-- Add your JavaScript to handle form submission and dynamic row creation -->
+    <script>
+// Get a reference to the form and table elements
+const form = document.getElementById('add-book-form');
+const tableBody = document.querySelector('table tbody');
+
+// Get a reference to the title input field and autocomplete dropdown
+const titleInput = document.getElementById('title');
+const autocompleteDropdown = titleInput.nextElementSibling;
+
+// Get a reference to the author input field
+const authorInput = document.getElementById('author');
+
+// Listen for form submission events
+form.addEventListener('submit', (event) => {
+  event.preventDefault(); // Prevent the form from submitting normally
+
+  // Get the values of the title and author input fields
+  const title = titleInput.value.trim();
+  const author = authorInput.value.trim();
+  const image = titleInput.getAttribute('data-cover-id');
+
+  // Clear the input fields
+  titleInput.value = '';
+  authorInput.value = '';
+  titleInput.setAttribute('data-cover-id', '');
+
+  // Create a new table row and add it to the table body
+  const row = tableBody.insertRow();
+  const titleCell = row.insertCell();
+  const authorCell = row.insertCell();
+  const coverCell = row.insertCell();
+  const actionCell = row.insertCell();
+  titleCell.textContent = title;
+  authorCell.textContent = author;
+  coverCell.innerHTML = `<img src="${image}" alt="${title} cover image" style="max-width: 100px; max-height: 100px;">`;
+  actionCell.innerHTML = `<i class="fa fa-trash" aria-hidden="true"></i>`;
+  actionCell.addEventListener('click', (event) => {
+    tableBody.deleteRow(row.rowIndex);
+  });
+
+  // Focus on the title input field so the user can continue adding books
+  titleInput.focus();
+});
+
+// Listen for keyup events on the title input field
+titleInput.addEventListener('keyup', (event) => {
+  const query = titleInput.value.trim();
+
+  // Only call the API if the query is at least 3 characters long
+  if (query.length >= 3) {
+    // Construct the API URL to search for exact matches
+    const url = `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&limit=5`;
+
+    // Call the API and handle the response
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        // Clear the previous autocomplete suggestions
+        autocompleteDropdown.innerHTML = '';
+
+        // Create a new option element for each suggestion and add it to the dropdown
+        data.docs.forEach(book => {
+          const option = document.createElement('div');
+          option.textContent = `${book.title}, ${book.author_name ? book.author_name[0] : ''}`;
+          option.addEventListener('click', () => {
+            titleInput.value = book.title;
+            authorInput.value = book.author_name ? book.author_name[0] : '';
+            titleInput.setAttribute('data-cover-id', `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`);
+            autocompleteDropdown.innerHTML = '';
+          });
+          autocompleteDropdown.appendChild(option);
+        });
+      })
+      .catch(error => {
+        console.error('An error occurred while fetching data from the Open Library API:', error);
+      });
+  } else {
+    // Clear the autocomplete suggestions if the query is too short
+    autocompleteDropdown.innerHTML = '';
+  }
+});
+
+// Listen for click events on the document and close the autocomplete dropdown if necessary
+document.addEventListener('click', (event) => {
+  if (!event.target.matches('#title') && !event.target.matches('.autocomplete-items div')) {
+    autocompleteDropdown.innerHTML = '';
+  }
+});
+
+
+
+
+    </script>
+  </body>
+</html>
